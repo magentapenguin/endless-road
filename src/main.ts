@@ -1,11 +1,10 @@
 import kaplay from "kaplay";
 import type * as kt from "kaplay";
-import { crew } from "@kaplayjs/crew";
 // import "kaplay/global"; // uncomment if you want to use without the k. prefix
 
 const k = kaplay({
     width: 240,
-    height: 280,
+    height: 320,
     scale: 2,
     pixelDensity: 2,
     crisp: true,
@@ -35,15 +34,14 @@ const k = kaplay({
     },
     background: [50, 110, 0],
     debugKey: "i",
-    plugins: [crew],
     font: "happy",
 });
 
 k.loadRoot("./"); // A good idea for Itch.io publishing later
-k.loadCrew("font", "happy");
+k.loadBitmapFont("happy", "fonts/happy.png", 28, 37);
 k.loadSprite("car", "sprites/car.png");
 k.loadSprite("green_car", "sprites/green_car.png");
-k.loadMusic("lets_go", "/music/lets_go_already.mp3")
+k.loadMusic("lets_go", "music/lets_go_already.mp3");
 
 k.scene("input_tester", () => {
     k.onUpdate(() => {
@@ -60,97 +58,158 @@ k.scene("input_tester", () => {
 const ROAD = k.rgb(33, 33, 34);
 const LANE_WIDTH = 33;
 const ROAD_PADDING = 20;
-const SPEED_LIMIT = 350 // Pixels per second
+const SPEED_LIMIT = 350;
 
 k.scene("main", () => {
     const music = k.play("lets_go", {
-        loop: true
-    })
+        loop: true,
+    });
     const npc = (lane: number) => {
-        const oncoming = lane <3
+        const oncoming = lane < 3;
         const car = k.add([
             k.sprite("green_car"),
             k.anchor("center"),
             k.rotate(oncoming ? 180 : 0),
-            k.pos(k.width() / 2 + LANE_WIDTH * (lane - 3) + LANE_WIDTH / 2, oncoming ? player.pos.y - k.height() / 2 - 50 : player.pos.y + k.height() / 2 + 50),
+            k.pos(
+                k.width() / 2 + LANE_WIDTH * (lane - 3) + LANE_WIDTH / 2,
+                oncoming
+                    ? player.pos.y - k.height() / 2 - 50
+                    : player.pos.y + k.height() / 2 + 50
+            ),
             k.area(),
             k.body({
                 damping: 0.01,
-            }), 
-            { target_angle: oncoming ? 180 : 0, lane, past_vel: null }
+            }),
+            { target_angle: oncoming ? 180 : 0, lane, past_vel: null, dead: false },
         ]);
         car.onUpdate(() => {
-            car.target_angle += k.clamp(((k.width() / 2 + LANE_WIDTH * (lane - 3) + LANE_WIDTH / 2) - car.pos.x) / 8, -15, 15)
+            car.target_angle += k.clamp(
+                (k.width() / 2 +
+                    LANE_WIDTH * (lane - 3) +
+                    LANE_WIDTH / 2 -
+                    car.pos.x) /
+                    8,
+                -15,
+                15
+            );
             car.angle = k.lerp(car.angle, car.target_angle, 0.05);
             car.target_angle = oncoming ? 180 : 0;
             car.addForce(
-                k.vec2((car.angle - (oncoming ? 180 : 0)) * car.vel.y * (oncoming ? 0.05 : -0.05) - car.vel.x, 0)
+                k.vec2(
+                    (car.angle - (oncoming ? 180 : 0)) *
+                        car.vel.y *
+                        (oncoming ? 0.05 : -0.05) -
+                        car.vel.x,
+                    0
+                )
             );
             if (oncoming) {
-                if (car.vel.y > SPEED_LIMIT) {
-                    car.addForce(k.vec2(0, 60))
+                if (car.vel.y < SPEED_LIMIT) {
+                    car.addForce(k.vec2(0, 60));
                 }
             } else {
                 if (-car.vel.y < SPEED_LIMIT) {
-                    car.addForce(k.vec2(0, -60))
+                    car.addForce(k.vec2(0, -60));
                 }
             }
-            if (k.rand() as number < 0.001) {
-                lane += k.randi(-1,1)
-                k.debug.log('changing lanes', lane)
-                if (k.rand() as number > 0.1) {
-                    lane = oncoming ? k.clamp(lane, 0, 2) : k.clamp(lane, 3, 6)
-                } else {
-                    k.debug.log('who cares about rules!')
+            if (
+                (k.rand() as number) < 0.001 ||
+                k.raycast(
+                    car.pos.add(
+                        k.Vec2.fromAngle(car.target_angle - 90).scale(
+                            car.height / 2 + 3
+                        )
+                    ),
+                    k.Vec2.fromAngle(car.target_angle - 90).scale(
+                        car.height / 2 + 15
+                    )
+                )
+            ) {
+                car.addForce(k.vec2(0, -player.vel.y / 2));
+                lane += k.randi(-1, 1);
+                if ((k.rand() as number) > 0.1) {
+                    lane = oncoming ? k.clamp(lane, 0, 2) : k.clamp(lane, 3, 6);
                 }
             }
             let rumble = 0;
             rumble +=
-                Math.abs(k.width() / 2 - car.pos.x) < 8
-                    ? car.vel.y * -0.01
-                    : 0; // Center Line
+                Math.abs(k.width() / 2 - car.pos.x) < 8 ? car.vel.y * -0.01 : 0; // Center Line
             rumble +=
                 Math.abs(k.width() / 2 - car.pos.x) >
                 k.width() / 2 - ROAD_PADDING
-                    ? car.vel.y * -0.1
+                    ? car.vel.y * -0.2
                     : 0; // Offroading
-
+            car.damping =
+                Math.abs(car.angle - (oncoming ? 180 : 0)) / 60 + 0.01;
             car.damping *= Math.max(rumble / 10, 1);
-            if (!car.past_vel) car.past_vel = car.vel
-            const dead = Math.abs(car.vel.y - car.past_vel.y) > 250
-            if (oncoming && (car.pos.y > player.pos.y + k.height() / 2 + 50 || dead )) {
-                if (dead) k.addKaboom(car.pos)
-                car.paused = true
-                setTimeout(()=>{
-                    lane = k.randi(0,3)
-                    car.lane = lane
-                    car.pos = k.vec2(k.width() / 2 + LANE_WIDTH * (lane - 3) + LANE_WIDTH / 2, oncoming ? player.pos.y - k.height() / 2 - 50 : player.pos.y + k.height() / 2 + 50)
-                    car.vel = k.vec2(0, SPEED_LIMIT)
-                    car.paused = false
-                }, k.rand(0, 800))
+            if (!car.past_vel) car.past_vel = car.vel;
+            if (Math.abs(car.past_vel.y - car.vel.y) > 250) car.dead = true
+            if (
+                oncoming &&
+                (car.pos.y > player.pos.y + k.height() / 2 + 50 || car.dead)
+            ) {
+                if (car.dead) {
+                    k.addKaboom(car.pos, { scale: 0.5 });
+                    k.shake(0.5);
+                }
+                car.paused = true;
+                setTimeout(() => {
+                    lane = k.randi(0, 3);
+                    car.lane = lane;
+                    car.pos = k.vec2(
+                        k.width() / 2 +
+                            LANE_WIDTH * (lane - 3) +
+                            LANE_WIDTH / 2,
+                        oncoming
+                            ? player.pos.y - k.height() / 2 - 50
+                            : player.pos.y + k.height() / 2 + 50
+                    );
+                    car.vel = k.vec2(0, SPEED_LIMIT);
+                    car.paused = false;
+                    car.dead = false;
+                }, k.rand(0, 800));
             }
-            if (!oncoming && (car.pos.y < player.pos.y - k.height() / 2 - 250 || dead )) {
-                if (dead) k.addKaboom(car.pos)
-                car.paused = true
-                setTimeout(()=>{
-                    lane = k.randi(3,6)
-                    car.lane = lane
-                    car.pos = k.vec2(k.width() / 2 + LANE_WIDTH * (lane - 3) + LANE_WIDTH / 2, oncoming ? player.pos.y - k.height() / 2 - 50 : player.pos.y + k.height() / 2 + 50)
-                    car.vel = k.vec2(0, -SPEED_LIMIT)
-                    car.paused = false
-                }, k.rand(0, 800))
+            if (
+                !oncoming &&
+                (car.pos.y < player.pos.y - k.height() / 2 - 250 || car.dead)
+            ) {
+                if (car.dead) {
+                    k.addKaboom(car.pos, { scale: 0.5 });
+                    k.shake(1);
+                }
+                car.paused = true;
+                setTimeout(() => {
+                    lane = k.randi(3, 6);
+                    car.lane = lane;
+                    car.pos = k.vec2(
+                        k.width() / 2 +
+                            LANE_WIDTH * (lane - 3) +
+                            LANE_WIDTH / 2,
+                        oncoming
+                            ? player.pos.y - k.height() / 2 - 50
+                            : player.pos.y + k.height() / 2 + 50
+                    );
+                    car.vel = k.vec2(0, -SPEED_LIMIT);
+                    car.paused = false;
+                    car.dead = false;
+                }, k.rand(0, 800));
             }
-            if (!oncoming && car.pos.y > player.pos.y + k.height() / 2 + 150) {
-                car.paused = true
-                setTimeout(()=>{
-                    lane = k.randi(3,6)
-                    car.lane = lane
-                    car.pos = k.vec2(k.width() / 2 + LANE_WIDTH * (lane - 3) + LANE_WIDTH / 2, player.pos.y - k.height() / 2 - 50)
-                    car.vel = k.vec2(0, -SPEED_LIMIT)
-                    car.paused = false
-                }, k.rand(0, 800))
+            if (!oncoming && car.pos.y > player.pos.y + k.height() / 2 + 200) {
+                car.paused = true;
+                setTimeout(() => {
+                    lane = k.randi(3, 6);
+                    car.lane = lane;
+                    car.pos = k.vec2(
+                        k.width() / 2 +
+                            LANE_WIDTH * (lane - 3) +
+                            LANE_WIDTH / 2,
+                        player.pos.y - k.height() / 2 - 50
+                    );
+                    car.vel = k.vec2(0, -SPEED_LIMIT);
+                    car.paused = false;
+                }, k.rand(0, 800));
             }
-            car.past_vel = car.vel
+            car.past_vel = car.vel;
         });
     };
     const keyboardAndGamepadValue = (
@@ -227,17 +286,18 @@ k.scene("main", () => {
         line(k.width() / 2 + LANE_WIDTH * 2, 20, k.rgb(255, 255, 255));
     });
     const player = k.add([
-        k.pos(160, 200),
+        k.pos(160, 0),
         k.sprite("car"),
         k.area(),
         k.body({
-            damping: 0.2
+            damping: 0.2,
         }),
         k.rotate(),
         k.anchor("center"),
         "car",
         { target_angle: 0, rumble: 0, cruise: null, accel: 0, past_vel: null },
     ]);
+    player.vel = k.vec2(0, -SPEED_LIMIT)
     player.onButtonDown("left", () => {
         player.target_angle = -15;
     });
@@ -260,19 +320,18 @@ k.scene("main", () => {
     });
     player.onButtonPress("cruise", () => {
         if (player.cruise) {
-            player.cruise = null
+            player.cruise = null;
         } else {
-            player.cruise = player.vel.y
+            player.cruise = player.vel.y;
         }
     });
     player.onUpdate(() => {
         if (player.cruise) {
             if (player.vel.y > player.cruise) {
-                player.accel -= 40
+                player.accel -= 40;
             }
         }
-        player.accel = -Math.min(-player.accel, 40)
-        k.debug.log(player.accel)
+        player.accel = -Math.min(-player.accel, 40);
         player.addForce(k.vec2(0, player.accel));
         player.accel = 0;
 
@@ -292,7 +351,7 @@ k.scene("main", () => {
         player.rumble +=
             Math.abs(k.width() / 2 - player.pos.x) >
             k.width() / 2 - ROAD_PADDING
-                ? player.vel.y * -0.1
+                ? player.vel.y * -0.08
                 : 0; // Offroading
 
         player.damping = Math.abs(player.angle) / 60 + 0.01;
@@ -300,7 +359,7 @@ k.scene("main", () => {
         player.damping *= Math.max(player.rumble / 10, 1);
 
         // Speed limiter
-        player.addForce(k.vec2(0, Math.max(-(player.vel.y + 400), 0)));
+        player.addForce(k.vec2(0, Math.max(-(player.vel.y + 500), 0)));
 
         if (player.rumble) {
             k.setCamPos(
@@ -317,20 +376,22 @@ k.scene("main", () => {
         if (player.pos.x < 0) {
             player.pos.x = 0;
         }
-        if (!player.past_vel) player.past_vel = player.vel
-        if (Math.abs(player.vel.y - player.past_vel.y) > 150) {
-            k.addKaboom(player.pos)
-            player.paused = true
-            player.hidden = true
-            setTimeout(()=>{
-                music.stop()
-                k.go('main')
-            }, 1000)
+        if (!player.past_vel) player.past_vel = player.vel;
+        
+        if (Math.abs(player.past_vel.y - player.vel.y) > 250 && !player.paused) {
+            k.addKaboom(player.pos, { scale: 5, speed: 0.75 }).onDestroy(() => {
+                music.stop();
+                k.go("main");
+            });
+            k.shake(80);
+            player.paused = true;
+            player.hidden = true;
         }
+        
     });
 
     for (let index = 0; index < 12; index++) {
-        npc(index % 6)
+        npc(index % 6);
     }
 
     k.onDraw(() => {
@@ -354,6 +415,21 @@ k.scene("main", () => {
         }
         let camera_offset = k.getCamPos();
         k.drawText({
+            text: (-player.pos.y / 10).toFixed(0),
+            color: k.hsl2rgb((-player.pos.y / 800) % 1, 0.7, 0.1),
+            pos: camera_offset.add(2, -k.height() / 2 + 2),
+            anchor: "top",
+            size: 18,
+        });
+        k.drawText({
+            text: (-player.pos.y / 10).toFixed(0),
+            color: k.hsl2rgb((-player.pos.y / 800) % 1, 0.7, 0.5),
+            pos: camera_offset.add(0, -k.height() / 2),
+            anchor: "top",
+            size: 20,
+        });
+
+        k.drawText({
             text: (-player.vel.y / 5).toFixed(0),
             color: k.hsl2rgb(-player.vel.y / 400, 0.7, 0.1),
             pos: camera_offset.add(k.width() / 2 - 3, k.height() / 2 - 3),
@@ -371,19 +447,24 @@ k.scene("main", () => {
             k.drawText({
                 text: (-player.cruise / 5).toFixed(0),
                 color: k.hsl2rgb(-player.cruise / 400, 0.7, 0.1),
-                pos: camera_offset.add(k.width() / 2 - 3, k.height() / 2 - 3 - 18),
+                pos: camera_offset.add(
+                    k.width() / 2 - 3,
+                    k.height() / 2 - 3 - 18
+                ),
                 anchor: "botright",
                 size: 8,
-            })
+            });
             k.drawText({
                 text: (-player.cruise / 5).toFixed(0),
                 color: k.hsl2rgb(-player.cruise / 400, 0.7, 0.5),
-                pos: camera_offset.add(k.width() / 2 - 5, k.height() / 2 - 5 - 18),
+                pos: camera_offset.add(
+                    k.width() / 2 - 5,
+                    k.height() / 2 - 5 - 18
+                ),
                 anchor: "botright",
                 size: 8,
-            })
+            });
         }
-        
     });
 });
 k.go("main");
