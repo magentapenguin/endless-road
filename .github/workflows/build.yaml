@@ -1,14 +1,22 @@
 name: Upload to itch.io
 on: push
 jobs:
-  itchio-upload:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup butler
-        uses: remarkablegames/setup-butler@v2
-
-      # https://itch.io/docs/butler/pushing.html
-      - name: Upload to itch.io
-        run: butler push directory magentapenguin/endless-road:browser
-        env:
-          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+    itchio-upload:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Setup butler
+              uses: remarkablegames/setup-butler@v2
+            - name: Set up Node
+              uses: actions/setup-node@v6
+              with:
+                  node-version: lts/*
+                  cache: "npm"
+            - name: Install dependencies
+              run: npm ci
+            - name: Build
+              run: npm run build
+            # https://itch.io/docs/butler/pushing.html
+            - name: Upload to itch.io
+              run: butler push dist magentapenguin/endless-road:browser
+              env:
+                  BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
