@@ -41,19 +41,27 @@ k.loadRoot("./"); // A good idea for Itch.io publishing later
 k.loadBitmapFont("happy", "fonts/happy.png", 28, 37);
 k.loadSprite("car", "sprites/car.png");
 k.loadSprite("green_car", "sprites/green_car.png");
-k.loadMusic("lets_go", "music/lets_go_already.mp3");
+type controlMapping = Array<kt.KGamepadButton | "left-x" | "left-y" | "left-xy" | "right-x" | "right-y" | "right-xy">
+const XBOX_CONTROLS_MAPPING: controlMapping = [
+    "rshoulder",
+    "lshoulder",
+    "ltrigger",
+    "rtrigger",
+    "left-x",
+    "right-x",
+    "south",
+    "east",
+    "west",
+    "north",
+    "home",
+    "select"
+]
+k.loadSprite("controls", "sprites/controls-xbox.png", {
+    sliceX: 9,
+    sliceY: 1
+})
 
-k.scene("input_tester", () => {
-    k.onUpdate(() => {
-        const buttons = Object.keys(k.getButtons());
-        buttons.forEach((btn, i) => {
-            // @ts-expect-error
-            if (k.isButtonPressed(btn)) {
-                k.debug.log(`Button "${btn}" is pressed`);
-            }
-        });
-    });
-});
+k.loadMusic("lets_go", "music/lets_go_already.mp3");
 
 const ROAD = k.rgb(33, 33, 34);
 const LANE_WIDTH = 33;
@@ -270,7 +278,7 @@ k.scene("main", () => {
                 3;
             for (
                 let y = offset;
-                y + offset < k.height() + height * 3;
+                y - offset < k.height() + height * 2;
                 y += height * 3
             ) {
                 k.drawLine({
