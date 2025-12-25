@@ -35,6 +35,7 @@ const k = kaplay({
     background: [50, 110, 0],
     debugKey: "i",
     font: "happy",
+    letterbox: true
 });
 
 k.loadRoot("./"); // A good idea for Itch.io publishing later
@@ -303,7 +304,7 @@ k.scene("main", () => {
         k.rotate(),
         k.anchor("center"),
         "car",
-        { target_angle: 0, rumble: 0, cruise: null, accel: 0, past_vel: null },
+        { target_angle: 0, rumble: 0, cruise: null, accel: 0, past_vel: null, touch_start: null, touch_point: null, x_start: null },
     ]);
     player.vel = k.vec2(0, -SPEED_LIMIT)
     player.onButtonDown("left", () => {
@@ -317,14 +318,24 @@ k.scene("main", () => {
             player.target_angle = 15 * vec.x;
         }
     });
+    player.onTouchStart((pos) => {
+        player.touch_start = pos
+        player.x_start = player.pos.x
+    })
+    player.onTouchMove((pos) => {
+        player.touch_point = pos
+    })
+    player.onTouchEnd(()=>{
+        player.touch_point = null
+    })
     player.onButtonDown("brake", (btn) => {
-        player.accel += (-player.vel.y / 2) * keyboardAndGamepadValue(btn);
+        player.accel = (-player.vel.y / 2) * keyboardAndGamepadValue(btn);
     });
     player.onButtonDown("accel", (btn) => {
-        player.accel += -40 * keyboardAndGamepadValue(btn);
+        player.accel = -40 * keyboardAndGamepadValue(btn);
     });
     player.onButtonDown("pbrake", () => {
-        player.accel += -player.vel.y / 1.2;
+        player.accel = -player.vel.y / 1.2;
     });
     player.onButtonPress("cruise", () => {
         if (player.cruise) {
@@ -336,12 +347,24 @@ k.scene("main", () => {
     player.onUpdate(() => {
         if (player.cruise) {
             if (player.vel.y > player.cruise) {
-                player.accel -= 40;
+                player.accel -= -40;
+            }
+        }
+        if (player.touch_point) {
+            let cam_offset = k.getCamPos();
+            let vec = player.touch_point.sub(player.touch_start)
+            player.target_angle -= k.clamp((vec.x / player.vel.y) * 100, -15, 15)
+            if (Math.abs(vec.y) > 30) {
+                if (vec.y < 0) {
+                    player.accel = vec.y * 40
+                } else {
+                    player.accel = (-player.vel.y / 2) * k.clamp(vec.y / 30, 0, 1);
+                }
             }
         }
         player.accel = -Math.min(-player.accel, 40);
         player.addForce(k.vec2(0, player.accel));
-        player.accel = 0;
+        player.accel = 0
 
         // Steering
         player.angle = k.lerp(player.angle, player.target_angle, 0.05);
