@@ -1,8 +1,9 @@
 import kaplay from "kaplay";
 import type * as kt from "kaplay";
+import { GamepadHapticManager } from "./haptics"
 // import "kaplay/global"; // uncomment if you want to use without the k. prefix
 
-const k = kaplay({
+export const k = kaplay({
     width: 240,
     height: 320,
     scale: 2,
@@ -37,30 +38,12 @@ const k = kaplay({
     font: "happy",
     letterbox: true
 });
+export default k
 
 k.loadRoot("./"); // A good idea for Itch.io publishing later
 k.loadBitmapFont("happy", "fonts/happy.png", 28, 37);
 k.loadSprite("car", "sprites/car.png");
 k.loadSprite("green_car", "sprites/green_car.png");
-type controlMapping = Array<kt.KGamepadButton | "left-x" | "left-y" | "left-xy" | "right-x" | "right-y" | "right-xy">
-const XBOX_CONTROLS_MAPPING: controlMapping = [
-    "rshoulder",
-    "lshoulder",
-    "ltrigger",
-    "rtrigger",
-    "left-x",
-    "right-x",
-    "south",
-    "east",
-    "west",
-    "north",
-    "home",
-    "select"
-]
-k.loadSprite("controls", "sprites/controls-xbox.png", {
-    sliceX: 9,
-    sliceY: 1
-})
 
 k.loadMusic("lets_go", "music/lets_go_already.mp3");
 
@@ -319,10 +302,24 @@ k.scene("main", () => {
         }
     });
     player.onTouchStart((pos) => {
+        let origin = k.vec2(
+                k.width() - 5,
+                k.height() - 5,
+            ).sub(50,18)
+        let area = new k.Rect(origin, 50, 18)
+        if (k.testRectPoint(area, pos)) {
+            if (player.cruise) {
+                player.cruise = null;
+            } else {
+                player.cruise = player.vel.y;
+            }
+            return
+        }
         player.touch_start = pos
         player.x_start = player.pos.x
     })
     player.onTouchMove((pos) => {
+        if (!player.touch_start) return
         player.touch_point = pos
     })
     player.onTouchEnd(()=>{
@@ -347,11 +344,10 @@ k.scene("main", () => {
     player.onUpdate(() => {
         if (player.cruise) {
             if (player.vel.y > player.cruise) {
-                player.accel -= -40;
+                player.accel -= 40;
             }
         }
         if (player.touch_point) {
-            let cam_offset = k.getCamPos();
             let vec = player.touch_point.sub(player.touch_start)
             player.target_angle -= k.clamp((vec.x / player.vel.y) * 100, -15, 15)
             if (Math.abs(vec.y) > 30) {
@@ -382,9 +378,8 @@ k.scene("main", () => {
         player.rumble +=
             Math.abs(k.width() / 2 - player.pos.x) >
             k.width() / 2 - ROAD_PADDING
-                ? player.vel.y * -0.08
+                ? player.vel.y * -0.02
                 : 0; // Offroading
-
         player.damping = Math.abs(player.angle) / 60 + 0.01;
 
         player.damping *= Math.max(player.rumble / 10, 1);
