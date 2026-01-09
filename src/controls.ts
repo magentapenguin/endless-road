@@ -65,3 +65,71 @@ export function getControl(mapping: kt.ChordedKey | kt.ChordedKGamepadButton, ga
     }
     return data
 }
+
+export function renderControl(pos: kt.Vec2, chain: Array<ControlToken>, opts: {
+    size: number,
+    spacing: number,
+    z: number
+}) {
+    const { size = 32, spacing = 8, z = 25 } = opts
+    let offset = 0;
+    const control_obj = k.add([
+        k.pos(pos),
+        k.area()
+    ])
+    for (const { type, ...data } of chain) {
+        switch (type) {
+            case "plus": {
+                const obj = control_obj.add([
+                    k.pos(pos.add(offset, 0)),
+                    k.text("+", {
+                        size
+                    }),
+                    k.area(),
+                    k.z(z)
+                ])
+                offset += obj.width + spacing
+                break
+            }
+            case "sprite": {
+                const { value: spr, frame } = data as ControlSpriteToken
+                const obj = control_obj.add([
+                    k.pos(pos.add(offset, 0)),
+                    k.sprite(spr),
+                    k.area(),
+                    k.z(z)
+                ])
+                obj.frame = frame
+                offset += obj.width + spacing
+                break
+            }
+            case "text": {
+                const obj = control_obj.add([
+                    k.pos(pos.add(offset, 0)),
+                    k.text((data as ControlTextToken).value, {
+                        size
+                    }),
+                    k.area(),
+                    k.z(z)
+                ])
+                offset += obj.width + spacing
+                break
+            }
+        } 
+    }
+    return control_obj
+}
+let lastLastInput = null 
+export function onControlChange(func: (type: kt.ButtonBindingDevice) => void): () => void {
+    const handler = () => {
+        if (k.getLastInputDeviceType() !== lastLastInput) {
+            lastLastInput = k.getLastInputDeviceType()
+            func(k.getLastInputDeviceType())
+        }
+    }
+    const handlers = []
+    handlers.push(k.onCharInput(handler).cancel)
+    handlers.push(k.onGamepadButtonDown(handler).cancel)
+    handlers.push(k.onTouchStart(handler).cancel)
+    return () => handlers.forEach(h=>h())
+}

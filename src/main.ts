@@ -4,7 +4,7 @@ import { GamepadHapticManager } from "./haptics"
 // import "kaplay/global"; // uncomment if you want to use without the k. prefix
 
 export const k = kaplay({
-    width: 240,
+    width: 340,
     height: 320,
     scale: 2,
     pixelDensity: 2,
@@ -49,7 +49,8 @@ k.loadMusic("lets_go", "music/lets_go_already.mp3");
 
 const ROAD = k.rgb(33, 33, 34);
 const LANE_WIDTH = 33;
-const ROAD_PADDING = 20;
+const NORMAL_WIDTH = 240
+let ROAD_PADDING = 20 + (k.width() - NORMAL_WIDTH)/2;
 const SPEED_LIMIT = 350;
 
 k.scene("main", () => {
@@ -72,9 +73,10 @@ k.scene("main", () => {
             k.body({
                 damping: 0.01,
             }),
-            { target_angle: oncoming ? 180 : 0, lane, past_vel: null, dead: false },
+            { target_angle: oncoming ? 180 : 0, lane, past_vel: null, dead: false, speed: 0, rage: 5 },
         ]);
         car.onUpdate(() => {
+            if (car.rage > 0) car.rage -= 0.01
             car.target_angle += k.clamp(
                 (k.width() / 2 +
                     LANE_WIDTH * (lane - 3) +
@@ -96,17 +98,15 @@ k.scene("main", () => {
                 )
             );
             if (oncoming) {
-                if (car.vel.y < SPEED_LIMIT) {
+                if (car.vel.y < car.speed) {
                     car.addForce(k.vec2(0, 60));
                 }
             } else {
-                if (-car.vel.y < SPEED_LIMIT) {
+                if (-car.vel.y < car.speed) {
                     car.addForce(k.vec2(0, -60));
                 }
             }
-            if (
-                (k.rand() as number) < 0.001 ||
-                k.raycast(
+            const cast = k.raycast(
                     car.pos.add(
                         k.Vec2.fromAngle(car.target_angle - 90).scale(
                             car.height / 2 + 3
@@ -116,13 +116,22 @@ k.scene("main", () => {
                         car.height / 2 + 15
                     )
                 )
+            if (
+                (k.rand() as number) < 0.001 || cast            
             ) {
+                if (cast) car.rage += 0.05
                 car.addForce(k.vec2(0, -player.vel.y / 2));
+                car.speed -= 1
                 lane += k.randi(-1, 1);
                 if ((k.rand() as number) > 0.1) {
                     lane = oncoming ? k.clamp(lane, 0, 2) : k.clamp(lane, 3, 6);
                 }
             }
+            car.speed += Math.max(0, car.rage) / 20
+            if (car.speed > SPEED_LIMIT + 50 + car.rage*2) car.speed -= 5
+            car.onCollideUpdate(()=>{
+                car.rage += 0.005
+            })
             let rumble = 0;
             rumble +=
                 Math.abs(k.width() / 2 - car.pos.x) < 8 ? car.vel.y * -0.01 : 0; // Center Line
@@ -159,6 +168,8 @@ k.scene("main", () => {
                     car.vel = k.vec2(0, SPEED_LIMIT);
                     car.paused = false;
                     car.dead = false;
+                    car.speed = SPEED_LIMIT + k.randi(-100, 100)
+                    car.rage = 0
                 }, k.rand(0, 800));
             }
             if (
@@ -184,6 +195,8 @@ k.scene("main", () => {
                     car.vel = k.vec2(0, -SPEED_LIMIT);
                     car.paused = false;
                     car.dead = false;
+                    car.speed = SPEED_LIMIT + k.randi(-100, 100)
+                    car.rage = 0
                 }, k.rand(0, 800));
             }
             if (!oncoming && car.pos.y > player.pos.y + k.height() / 2 + 200) {
@@ -199,6 +212,8 @@ k.scene("main", () => {
                     );
                     car.vel = k.vec2(0, -SPEED_LIMIT);
                     car.paused = false;
+                    car.speed = SPEED_LIMIT + k.randi(-100, 100)
+                    car.rage = 0
                 }, k.rand(0, 800));
             }
             car.past_vel = car.vel;
@@ -278,7 +293,7 @@ k.scene("main", () => {
         line(k.width() / 2 + LANE_WIDTH * 2, 20, k.rgb(255, 255, 255));
     });
     const player = k.add([
-        k.pos(160, 0),
+        k.pos(k.width()/2 + LANE_WIDTH * 1.5, 0),
         k.sprite("car"),
         k.area(),
         k.body({
