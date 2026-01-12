@@ -107,30 +107,43 @@ k.scene("main", () => {
                 }
             }
             const cast = k.raycast(
-                    car.pos.add(
-                        k.Vec2.fromAngle(car.target_angle - 90).scale(
-                            car.height / 2 + 3
-                        )
-                    ),
+                car.pos.add(
                     k.Vec2.fromAngle(car.target_angle - 90).scale(
-                        car.height / 2 + 15
+                        car.height / 2 + 3
                     )
+                ),
+                k.Vec2.fromAngle(car.target_angle - 90).scale(
+                    car.height / 2 + 15
                 )
+            )
             if (
                 (k.rand() as number) < 0.001 || cast            
             ) {
                 if (cast) car.rage += 0.05
-                car.addForce(k.vec2(0, -player.vel.y / 2));
+                car.addForce(k.vec2(0, -car.vel.y / 2));
                 car.speed -= 1
                 lane += k.randi(-1, 1);
                 if ((k.rand() as number) > 0.1) {
                     lane = oncoming ? k.clamp(lane, 0, 2) : k.clamp(lane, 3, 6);
                 }
             }
+            const rear_cast = k.raycast(
+                car.pos.add(
+                    k.Vec2.fromAngle(car.target_angle + 90).scale(
+                        car.height / 2 + 3
+                    )
+                ),
+                k.Vec2.fromAngle(car.target_angle + 90).scale(
+                    car.height / 2 + 15
+                )
+            )
+            if (rear_cast && car.rage > 10) {
+                car.addForce(k.vec2(0, -car.vel.y / 5));
+            } 
             car.speed += Math.max(0, car.rage) / 20
             if (car.speed > SPEED_LIMIT + 50 + car.rage*2) car.speed -= 5
             car.onCollideUpdate(()=>{
-                car.rage += 0.005
+                car.rage += 0.0001
             })
             let rumble = 0;
             rumble +=
@@ -358,9 +371,7 @@ k.scene("main", () => {
     });
     player.onUpdate(() => {
         if (player.cruise) {
-            if (player.vel.y > player.cruise) {
-                player.accel -= 40;
-            }
+            player.accel -= k.clamp((player.vel.y - player.cruise) * 2, 0, 40);
         }
         if (player.touch_point) {
             let vec = player.touch_point.sub(player.touch_start)
@@ -397,19 +408,20 @@ k.scene("main", () => {
                 : 0; // Offroading
         player.damping = Math.abs(player.angle) / 60 + 0.01;
 
-        player.damping *= Math.max(player.rumble / 10, 1);
+        player.damping *= Math.max(player.rumble / 50, 1);
 
         // Speed limiter
-        player.addForce(k.vec2(0, Math.max(-(player.vel.y + 500), 0)));
+        player.addForce(k.vec2(0, Math.max(-(player.vel.y + 500 - (player.rumble*100)), 0)));
 
         if (player.rumble) {
             k.setCamPos(
-                k.width() / 2 + k.rand(-player.rumble, player.rumble),
+                k.width() / 2 + k.rand(-player.rumble, player.rumble) + (k.width() / 2 - player.pos.x + LANE_WIDTH * 1.5) / 10,
                 player.pos.y + k.rand(-player.rumble, player.rumble)
             );
         } else {
-            k.setCamPos(k.width() / 2, player.pos.y);
+            k.setCamPos(k.width() / 2 + (k.width() / 2 - player.pos.x + LANE_WIDTH * 1.5) / 10, player.pos.y);
         }
+        k.setCamRot(player.angle / 50)
 
         if (player.pos.x > k.width()) {
             player.pos.x = k.width();

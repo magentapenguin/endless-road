@@ -17,6 +17,8 @@ export class GamepadHapticManager {
     vibrate(strength: number, duration: number, type: GamepadHapticEffectType) {
         if (this.hapticActuators[0].playEffect) {
             return this.vibrate_chrome(strength, duration, type);
+        } else if ("pulse" in this.hapticActuators[0]) {
+            return this.vibrate_firefox(strength, duration, type)
         }
     }
     protected async vibrate_chrome(
@@ -38,6 +40,8 @@ export class GamepadHapticManager {
         } catch (e) {
             if (e.name === "NotSupportedError") {
                 return HapticResult.UNSUPPORTED;
+            } else {
+                return HapticResult.FAILED
             }
         }
     }
