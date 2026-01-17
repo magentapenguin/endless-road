@@ -20,6 +20,7 @@ export default defineConfig({
         port: 3001,
     },
     build: {
+        target: "esnext",
         // disable this for low bundle sizes
         sourcemap: true,
         rollupOptions: {
