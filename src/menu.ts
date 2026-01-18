@@ -1,5 +1,5 @@
 import type * as kt from "kaplay";
-import k, { LANE_WIDTH, ROAD, ROAD_PADDING } from "./main";
+import k, { LANE_WIDTH, mouse, ROAD, ROAD_PADDING } from "./main";
 import { npc } from "./npc";
 import credits from "./credits.json";
 
@@ -36,7 +36,7 @@ function addButton(
     // it runs every frame when the object is being hovered
     btn.onHoverUpdate(() => {
         btn.scale = k.vec2(1.2);
-        k.setCursor("pointer");
+        mouse.frame = 1
     });
 
     // onHoverEnd() comes from area() component
@@ -54,7 +54,8 @@ function addButton(
 }
 
 k.scene("menu", () => {
-    k.onUpdate(() => k.setCursor("default"));
+    k.setBackground(50, 110, 0)
+    k.onUpdate(() => mouse.frame = 0);
     k.onDraw(() => {
         const offset = k.vec2(ROAD_PADDING, k.getCamPos().y - k.height() / 2);
         k.drawRect({
@@ -126,15 +127,25 @@ k.scene("menu", () => {
 });
 
 k.scene("credits", () => {
-    k.onUpdate(() => k.setCursor("default"));
-    addButton("Back", k.vec2(35, 20), () => k.go("menu"), [60, 30]);
+    k.onButtonPress("menu", ()=>k.go("menu"))
+    k.setBackground(90, 130, 190)
+    k.onUpdate(()=>mouse.frame = 0)
+    addButton("Back", k.vec2(k.width()/2, 20), () => k.go("menu"), [k.width()/3, 30]);
     credits.forEach((data, index) => {
         const obj = k.add([
-            k.pos(k.width() / 2, index * 40 + 50),
-            k.text(data.text, {size: 12}),
+            k.pos(k.width() / 2, index * 30 + 60),
+            k.text(data.text, {size: 12, align:"center"}),
             k.anchor('center'),
-            k.area()
+            k.area(),
+            k.scale(1)
         ]);
+        obj.onHoverUpdate(() => {
+            obj.scale = k.vec2(1.2);
+            mouse.frame = 1
+        });
+        obj.onHoverEnd(() => {
+            obj.scale = k.vec2(1)
+        })
         obj.onClick(() => window.open(data.link, '_blank'))
     });
 });

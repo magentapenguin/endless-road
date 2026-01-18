@@ -2,6 +2,7 @@ import kaplay from "kaplay";
 import type * as kt from "kaplay";
 import { GamepadHapticManager } from "./haptics"
 import { npc } from "./npc";
+import { getSetting, loadSettings } from './settings'
 // import "kaplay/global"; // uncomment if you want to use without the k. prefix
 
 export const k = kaplay({
@@ -33,19 +34,28 @@ export const k = kaplay({
             keyboard: ["q"],
             gamepad: "west",
         },
+        menu: {
+            keyboard: ["escape"],
+            gamepad: ["home"]
+        }
     },
     background: [0,0,0],
     debugKey: "i",
     font: "happy",
     letterbox: true
 });
+k.setLayers(["game", "mouse"], "game")
 export default k
 
+loadSettings()
 
 k.loadRoot("./"); // A good idea for Itch.io publishing later
 k.loadBitmapFont("happy", "fonts/happy.png", 28, 37);
 k.loadSprite("car", "sprites/car.png");
 k.loadSprite("green_car", "sprites/green_car.png");
+k.loadSprite("cursors", "sprites/cursors.png", {
+    sliceX: 2
+})
 k.loadMusic("lets_go", "music/lets_go_already.mp3");
 
 export const ROAD = k.rgb(33, 33, 34);
@@ -62,7 +72,7 @@ k.scene("main", () => {
         loop: true,
     });
 
-    k.setCursor('default')
+    k.onButtonPress("menu", ()=>k.go("menu"))
     
     const keyboardAndGamepadValue = (
         btn: string,
@@ -359,6 +369,23 @@ k.add([
     k.anchor('center'),
     k.pos(k.width()/2,k.height()/2)
 ])
+
+export const mouse = k.add([
+    k.pos(k.width()/2, k.height()/2),
+    k.anchor(k.vec2(-0.5,-1)),
+    k.stay(),
+    k.fixed(),
+    k.fakeMouse(),
+    k.layer("mouse"),
+    k.sprite("cursors"),
+    k.area(),
+    "mouse"
+])
+mouse.onUpdate(()=>{
+    mouse.hidden = k.getSceneName() === "main" && !k.debug.inspect
+})
+k.setCursor("none")
+
 
 import("./menu").then(()=>{
     k.setBackground(50, 110, 0)
