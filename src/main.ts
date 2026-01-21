@@ -53,6 +53,7 @@ loadSettings()
 
 k.loadRoot("./"); // A good idea for Itch.io publishing later
 k.loadBitmapFont("happy", "fonts/happy.png", 28, 37);
+k.loadBitmapFont("font", "fonts/font.png", 11,11, {chars:"QWERTYUIOPASDFGHJKLZXCVBNM1234567890 "})
 k.loadSprite("car", "sprites/car.png");
 k.loadSprite("green_car", "sprites/green_car.png");
 k.loadSprite("cursors", "sprites/cursors.png", {
@@ -328,7 +329,8 @@ k.scene("main", () => {
             color: k.hsl2rgb((-player.pos.y / 800) % 1, 0.7, 0.1),
             pos: camera_offset.add(2, -k.height() / 2 + 2),
             anchor: "top",
-            size: 18,
+            size: 20,
+            font: "font"
         });
         k.drawText({
             text: (-player.pos.y / 10).toFixed(0),
@@ -336,6 +338,7 @@ k.scene("main", () => {
             pos: camera_offset.add(0, -k.height() / 2),
             anchor: "top",
             size: 20,
+            font: "font"
         });
 
         k.drawText({
@@ -344,6 +347,7 @@ k.scene("main", () => {
             pos: camera_offset.add(k.width() / 2 - 3, k.height() / 2 - 3),
             anchor: "botright",
             size: 18,
+            font: "font"
         });
         k.drawText({
             text: (-player.vel.y / 5).toFixed(0),
@@ -351,6 +355,7 @@ k.scene("main", () => {
             pos: camera_offset.add(k.width() / 2 - 5, k.height() / 2 - 5),
             anchor: "botright",
             size: 18,
+            font: "font"
         });
         if (player.cruise) {
             k.drawText({
@@ -362,6 +367,7 @@ k.scene("main", () => {
                 ),
                 anchor: "botright",
                 size: 8,
+                font: "font"
             });
             k.drawText({
                 text: (-player.cruise / 5).toFixed(0),
@@ -372,6 +378,7 @@ k.scene("main", () => {
                 ),
                 anchor: "botright",
                 size: 8,
+                font: "font"
             });
         }
     });
