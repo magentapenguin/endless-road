@@ -35,13 +35,26 @@ export function getSetting(key: string, default_value: string) {
     return settings[key] ?? default_value
 }
 
+const handlers: Record<string, ((new_value: string, old_value: string | null) => void)[]> = {}
+export function onChange(key: string, func: (new_value: string, old_value: string | null) => void): () => void {
+    if (key in handlers) {
+        handlers[key].push(func)
+    } else {
+        handlers[key] = [func]
+    }
+    return () => {
+        handlers[key] = handlers[key].filter(val => val !== func)
+    }
+}
+
 export function getSettings() {
     return settings
 }
 
 export function setSetting(key: string, value: string) {
+    if (persistence) localStorage.setItem(`${prefix}:${key}`, value) 
+        else handlers[key]?.forEach?.(func=>func(value,settings[key]))
     settings[key] = value
-    if (persistence) localStorage.setItem(`${prefix}:${key}`, value)
 }
 
 export function loadSettings() {
@@ -55,5 +68,8 @@ export function loadSettings() {
 }
 
 window.addEventListener("storage", e => {
-    if (e.key.startsWith(prefix+":")) loadSettings()
+    if (e.key.startsWith(prefix+":")) {
+        settings[e.key.slice(prefix.length+1)] = e.newValue
+        handlers[e.key.slice(prefix.length+1)]?.forEach?.(func=>func(e.newValue,e.oldValue))
+    }
 })

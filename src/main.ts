@@ -2,7 +2,7 @@ import kaplay from "kaplay";
 import type * as kt from "kaplay";
 import { GamepadHapticManager } from "./haptics"
 import { npc } from "./npc";
-import { getSetting, loadSettings } from './settings'
+import { getSetting, loadSettings, onChange } from './settings'
 // import "kaplay/global"; // uncomment if you want to use without the k. prefix
 
 export const k = kaplay({
@@ -41,6 +41,8 @@ export const k = kaplay({
     },
     background: [0,0,0],
     debugKey: "i",
+    // @ts-expect-error
+    debug: import.meta.env.DEV,
     font: "happy",
     letterbox: true
 });
@@ -57,6 +59,7 @@ k.loadSprite("cursors", "sprites/cursors.png", {
     sliceX: 2
 })
 k.loadMusic("lets_go", "music/lets_go_already.mp3");
+k.loadSprite("title", "sprites/title.png");
 
 export const ROAD = k.rgb(33, 33, 34);
 export const LANE_WIDTH = 33;
@@ -66,12 +69,22 @@ export function getRoadPadding() {
     return ROAD_PADDING
 }
 export const SPEED_LIMIT = 350;
-
+export const music = k.play("lets_go", {
+    loop: true,
+    volume: parseFloat(getSetting("music_volume", "1")),
+    paused: true
+});
+k.onMousePress(()=>{
+    if (k.getSceneName() === "main") {
+        music.play()
+    }
+})
+onChange("music_volume", (value: string) => {
+    console.log(value)
+    music.volume = parseFloat(value)
+})
 k.scene("main", () => {
-    const music = k.play("lets_go", {
-        loop: true,
-    });
-
+    mouse.frame = 0
     k.onButtonPress("menu", ()=>k.go("menu"))
     
     const keyboardAndGamepadValue = (
