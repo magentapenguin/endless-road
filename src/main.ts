@@ -53,7 +53,7 @@ loadSettings()
 
 k.loadRoot("./"); // A good idea for Itch.io publishing later
 k.loadBitmapFont("happy", "fonts/happy.png", 28, 37);
-k.loadBitmapFont("font", "fonts/font.png", 11,11, {chars:"QWERTYUIOPASDFGHJKLZXCVBNM1234567890 "})
+k.loadBitmapFont("font", "fonts/font.png", 11,11, {chars:"QWERTYUIOPASDFGHJKLZXCVBNM0123456789 "})
 k.loadSprite("car", "sprites/car.png");
 k.loadSprite("green_car", "sprites/green_car.png");
 k.loadSprite("cursors", "sprites/cursors.png", {
