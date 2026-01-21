@@ -269,6 +269,7 @@ k.scene("main", () => {
         player.addForce(k.vec2(0, Math.max(-(player.vel.y + 500 - (player.rumble*100)), 0)));
 
         if (player.rumble) {
+            player.rumble *= parseFloat(getSetting("shake_power","1"))
             k.setCamPos(
                 k.width() / 2 + k.rand(-player.rumble, player.rumble) + (k.width() / 2 - player.pos.x + LANE_WIDTH * 1.5) / 10,
                 player.pos.y + k.rand(-player.rumble, player.rumble)
@@ -291,7 +292,7 @@ k.scene("main", () => {
                 music.stop();
                 k.go("main");
             });
-            k.shake(80);
+            k.shake(80*parseFloat(getSetting("shake_power","1")));
             player.paused = true;
             player.hidden = true;
         }

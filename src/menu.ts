@@ -59,7 +59,7 @@ function slider(
     s = [160, 10],
 ) {
     const container = k.add([
-        k.rect(s[0]+4,s[1]+4, {radius:6}),
+        k.rect(s[0]+4,s[1]+4, {radius:8}),
         k.pos(p),
         k.area(),
         k.anchor("center"),
@@ -69,7 +69,7 @@ function slider(
         }
     ])
     const inner = container.add([
-        k.rect(s[0]*v,s[1], {radius:4}),
+        k.rect(s[0]*v,s[1], {radius:8}),
         k.pos(-s[0]/2,0),
         k.anchor("left")
     ])
@@ -201,4 +201,10 @@ k.scene("settings", () => {
         k.text("Music Volume", {size:12})
     ])
     slider(option_pos, v=>setSetting('music_volume',v.toFixed(5)),parseFloat(getSetting('music_volume','1')))
+    k.add([
+        k.pos(text_pos.add(0,20)),
+        k.anchor("right"),
+        k.text("Screen Shake", {size:12})
+    ])
+    slider(option_pos.add(0,20), v=>setSetting('shake_power',v.toFixed(5)),parseFloat(getSetting('shake_power','1')))
 });
