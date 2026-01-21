@@ -280,11 +280,11 @@ k.scene("main", () => {
         }
         k.setCamRot(player.angle / 50)
 
-        if (player.pos.x > k.width()) {
-            player.pos.x = k.width();
+        if (player.pos.x > k.width()-player.width) {
+            player.pos.x = k.width()-player.width;
         }
-        if (player.pos.x < 0) {
-            player.pos.x = 0;
+        if (player.pos.x < player.width) {
+            player.pos.x = player.width;
         }
         if (!player.past_vel) player.past_vel = player.vel;
         
