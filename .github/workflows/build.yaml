@@ -2,6 +2,8 @@ name: Upload to itch.io
 on: push
 jobs:
     itchio-upload:
+        permissions:
+            contents: read
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
