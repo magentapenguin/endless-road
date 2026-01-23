@@ -1,5 +1,5 @@
 import k, { LANE_WIDTH, SPEED_LIMIT, getRoadPadding } from "./main"
-import { getSetting } from "./settings";
+import { getValue } from "./persistance";
 export const npc = (lane: number) => {
     const oncoming = lane < 3;
     const car = k.add([
@@ -108,7 +108,7 @@ export const npc = (lane: number) => {
         ) {
             if (car.dead) {
                 k.addKaboom(car.pos, { scale: 0.5 });
-                k.shake(0.5*parseFloat(getSetting("shake_power","1")));
+                k.shake(0.5*parseFloat(getValue("shake_power","1")));
             }
             car.paused = true;
             setTimeout(() => {
@@ -135,7 +135,7 @@ export const npc = (lane: number) => {
         ) {
             if (car.dead) {
                 k.addKaboom(car.pos, { scale: 0.5 });
-                k.shake(parseFloat(getSetting("shake_power","1")));
+                k.shake(parseFloat(getValue("shake_power","1")));
             }
             car.paused = true;
             setTimeout(() => {

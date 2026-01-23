@@ -2,7 +2,7 @@ import kaplay from "kaplay";
 import type * as kt from "kaplay";
 import { GamepadHapticManager } from "./haptics"
 import { npc } from "./npc";
-import { getSetting, loadSettings, onChange } from './settings'
+import { getValue, loadData, onChange } from './persistance'
 // import "kaplay/global"; // uncomment if you want to use without the k. prefix
 
 export const k = kaplay({
@@ -49,7 +49,7 @@ export const k = kaplay({
 k.setLayers(["game", "mouse"], "game")
 export default k
 
-loadSettings()
+loadData()
 
 k.loadRoot("./"); // A good idea for Itch.io publishing later
 k.loadBitmapFont("happy", "fonts/happy.png", 28, 37);
@@ -72,7 +72,7 @@ export function getRoadPadding() {
 export const SPEED_LIMIT = 350;
 export const music = k.play("lets_go", {
     loop: true,
-    volume: parseFloat(getSetting("music_volume", "1")),
+    volume: parseFloat(getValue("music_volume", "1")),
     paused: true
 });
 k.onMousePress(()=>{
@@ -270,15 +270,15 @@ k.scene("main", () => {
         player.addForce(k.vec2(0, Math.max(-(player.vel.y + 500 - (player.rumble*100)), 0)));
 
         if (player.rumble) {
-            player.rumble *= parseFloat(getSetting("shake_power","1"))
+            player.rumble *= parseFloat(getValue("shake_power","1"))
             k.setCamPos(
-                k.width() / 2 + k.rand(-player.rumble, player.rumble) + (k.width() / 2 - player.pos.x + LANE_WIDTH * 1.5) / 10,
+                k.width() / 2 + k.rand(-player.rumble, player.rumble) + (parseFloat(getValue("screen_effects","1")) * (k.width() / 2 - player.pos.x + LANE_WIDTH * 1.5) / 10),
                 player.pos.y + k.rand(-player.rumble, player.rumble)
             );
         } else {
-            k.setCamPos(k.width() / 2 + (k.width() / 2 - player.pos.x + LANE_WIDTH * 1.5) / 10, player.pos.y);
+            k.setCamPos(k.width() / 2 + (parseFloat(getValue("screen_effects","1")) * (k.width() / 2 - player.pos.x + LANE_WIDTH * 1.5) / 10), player.pos.y);
         }
-        k.setCamRot(player.angle / 50)
+        k.setCamRot(parseFloat(getValue("screen_effects","1")) * player.angle / 50)
 
         if (player.pos.x > k.width()-player.width) {
             player.pos.x = k.width()-player.width;
@@ -293,7 +293,7 @@ k.scene("main", () => {
                 music.stop();
                 k.go("main");
             });
-            k.shake(80*parseFloat(getSetting("shake_power","1")));
+            k.shake(80*parseFloat(getValue("shake_power","1")));
             player.paused = true;
             player.hidden = true;
         }

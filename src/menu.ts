@@ -2,7 +2,7 @@ import type * as kt from "kaplay";
 import k, { LANE_WIDTH, mouse, ROAD, ROAD_PADDING } from "./main";
 import { npc } from "./npc";
 import credits from "./credits.json";
-import { getSetting, setSetting } from "./settings";
+import { getValue, persistenceSupported, setValue } from "./persistance";
 
 function addButton(
     txt = "start game",
@@ -56,6 +56,7 @@ function slider(
     p = k.vec2(k.width() / 2, 100),
     f = (v: number) => k.debug.log(v),
     v = 0.5,
+    b = true,
     s = [160, 10],
 ) {
     const container = k.add([
@@ -65,7 +66,9 @@ function slider(
         k.anchor("center"),
         k.color(0,0,0),
         {
-            value: v
+            value: v,
+            dragging: false,
+            bounded: b
         }
     ])
     const inner = container.add([
@@ -75,13 +78,26 @@ function slider(
     ])
     container.onHoverUpdate(() => {
         if (k.isMouseDown()) {
-            const pos = k.mousePos()
-            const value = k.clamp(-container.pos.sub(pos).sub(s[0]/2,0).x/s[0],0,1)
+            if (container.bounded) container.dragging = true
+        }
+    })
+    container.onClick(()=> {
+        if (!container.bounded) {
+            container.value = parseFloat(prompt('Set value: 0 - 1', container.value.toFixed(5)))
+            f(container.value)
+        }
+    })
+    k.onMouseMove((pos) => {
+        if (!k.isMouseDown('left')) container.dragging = false
+        if (container.dragging) {
+            let value = -container.pos.sub(pos).sub(s[0]/2,0).x/s[0]
+            value = k.clamp(value,0,1)
             inner.width = s[0]*value
             container.value = value
             f(value)
         }
     })
+    return container
 }
 
 k.scene("menu", () => {
@@ -193,18 +209,32 @@ k.scene("settings", () => {
         k.width() / 3,
         30,
     ]);
+    if (!persistenceSupported()) {
+        k.add([
+            k.pos(k.width()/2, 80),
+            k.anchor("center"),
+            k.text("Unable to save game data", {size:12}),
+            k.color(114, 65, 0)
+        ])
+    }
     const text_pos   = k.vec2(k.width()/2-20, 100)
     const option_pos = k.vec2(k.width()/2+(160/2), 100)
-    k.add([
-        k.pos(text_pos),
-        k.anchor("right"),
-        k.text("Music Volume", {size:12})
-    ])
-    slider(option_pos, v=>setSetting('music_volume',v.toFixed(5)),parseFloat(getSetting('music_volume','1')))
-    k.add([
-        k.pos(text_pos.add(0,20)),
-        k.anchor("right"),
-        k.text("Screen Shake", {size:12})
-    ])
-    slider(option_pos.add(0,20), v=>setSetting('shake_power',v.toFixed(5)),parseFloat(getSetting('shake_power','1')))
+    let boundless = false
+    k.onKeyPress('=', () => {
+        boundless = !boundless
+        settings.forEach(item => item.bounded = !boundless)
+    })
+    let settings = []
+    const setting_slider = (y: number, text: string, key: string) => {
+        k.add([
+            k.pos(text_pos.add(0,y)),
+            k.anchor("right"),
+            k.text(text, {size:12})
+        ])
+        settings.push(slider(option_pos.add(0,y), v=>setValue(key,v.toFixed(5)),parseFloat(getValue(key,'1'))))
+    }
+
+    setting_slider(0, "Music Volume", "music_volume")
+    setting_slider(20, "Screen Shake", "shake_power")
+    setting_slider(40, "Screen Movement", "screen_effects")
 });
